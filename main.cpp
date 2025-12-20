@@ -6,6 +6,7 @@
 #include "MotionControl.h"
 #include "Vector.hpp"
 #include "StdMotor.h"
+#include "Servo.h"
 #include <cstring>
 #include <cstdio>
 #include <cstdint>
@@ -16,12 +17,14 @@ StdMotor FR(p22, p17, p16, period);
 StdMotor BL(p23, p15, p14, period);
 StdMotor BR(p24, p13, p12, period);
 MotionControl carMotion(FL, FR, BL, BR);
+Servo servoLR(p29), servoUD(p30);
 
 struct CmdInfo{
     char text[32];
     int len;
     CmdInfo() {memset(text, 0, sizeof(text)); len = 0;}
 };
+
 const uint32_t BT_READABLE = 0x3f;
 BufferedSerial pc(USBTX, USBRX);
 BufferedSerial bt(p9, p10);
@@ -118,24 +121,31 @@ void cmdProcess(const char* text, int len){
             }
         }
     }
-    if(text[0] == ':'){
+    if(text[0] == ':') {
         char command[8];
         sscanf(text + 2, "%s", command);
-        if(strcmp(command, "SPD") == 0){
+        if(strcmp(command, "SPD") == 0) {
             int speed;
             sscanf(text + 6, "%d", &speed);
             carMotion.setBaseSpeed(speed);
         }
-        if(strcmp(command, "V") == 0){
+        if(strcmp(command, "V") == 0) {
             double vx, vy;
             sscanf(text + 4, "%lf%lf", &vx, &vy);
             carMotion.updateMotion(Vector<double>(vx, vy));
         }
-        if(strcmp(command, "SM") == 0){
+        if(strcmp(command, "SM") == 0) {
             char mode[8];
             sscanf(text + 5, "%s", mode);
             if(strcmp(mode, "JS") == 0) carMotion.changeMode(JOYSTICK);
             if(strcmp(mode, "BT") == 0) carMotion.changeMode(BUTTON);
+        }
+        if(strcmp(command, "SVO") == 0) {
+            char dir[4];
+            int level;
+            sscanf(text + 6, "%s%d", dir, &level);
+            if(strcmp(dir, "UD")) servoUD.setAngle(level * 10);
+            if(strcmp(dir, "LR")) servoLR.setAngle(level * 10);
         }
     }
 }
