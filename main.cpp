@@ -6,18 +6,26 @@
 #include "MotionControl.h"
 #include "Vector.hpp"
 #include "StdMotor.h"
-#include "Servo.h"
+// #include "Servo.h"
+
 #include <cstring>
 #include <cstdio>
 #include <cstdint>
 
 const int period = 50; // unit: us
+
+/* Old definition of the motors
 StdMotor FL(p21, p19, p18, period);
 StdMotor FR(p22, p17, p16, period);
 StdMotor BL(p23, p15, p14, period);
 StdMotor BR(p24, p13, p12, period);
+*/
+
+StdMotor BR(p21, p19, p18, period);
+StdMotor BL(p22, p17, p16, period);
+StdMotor FR(p23, p15, p14, period);
+StdMotor FL(p24, p13, p12, period);
 MotionControl carMotion(FL, FR, BL, BR);
-Servo servoLR(p29), servoUD(p30);
 
 struct CmdInfo{
     char text[32];
@@ -43,7 +51,6 @@ int main() {
     inputThread.start(callback(inputProcess));
 
     printf("Successfully started.\n");
-
     while (true) {
         osEvent evt = cmdMail.get(0); 
         if(evt.status == osEventMail){
@@ -85,6 +92,7 @@ void inputProcess() {
 
 void cmdProcess(const char* text, int len){
     printf("Len: %d, %s\r\n", len, text);
+    bt.write(text, strlen(text));
     fflush(stdout);
     if(text[0] == '#'){
         char command = text[2];
@@ -144,8 +152,8 @@ void cmdProcess(const char* text, int len){
             char dir[4];
             int level;
             sscanf(text + 6, "%s%d", dir, &level);
-            if(strcmp(dir, "UD")) servoUD.setAngle(level * 10);
-            if(strcmp(dir, "LR")) servoLR.setAngle(level * 10);
+            // if(strcmp(dir, "UD")) servoUD.setAngle(level * 10);
+            // if(strcmp(dir, "LR")) servoLR.setAngle(level * 10);
         }
     }
 }

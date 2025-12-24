@@ -17,8 +17,10 @@ public:
     StdMotor(PinName, PinName, PinName, int);
     void start();
     void setSpeed(double);
+    void setPeriod(int);
     int getPeriod();
     double getSpeed();
+    int getWidth();
 };
 
 #endif
