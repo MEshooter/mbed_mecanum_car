@@ -1,3 +1,9 @@
+/**
+ * The library for controlling servos.
+ * If some of the PWM pins on LPC1768 is be used for other components (motors),
+ * this library should be banned because LPC1768 only supports ONE period for PWM outputs.
+ */
+
 #ifndef SERVO_H
 #define SERVO_H
 

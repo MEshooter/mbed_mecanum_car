@@ -1,3 +1,11 @@
+/**  
+ * The library is designed for motion controlling of the vehicle.
+ * BUTTON mode allows the car to move in four directions.
+ * JOYSTICK mode allows the car to move in all directions.
+ * The moving direction of the car is based on a velocity vector, 
+ * and the magnitude of the velocity is based on the variable baseSpeed.
+ */
+
 #ifndef MOTIONCONTROL_H
 #define MOTIONCONTROL_H
 
@@ -13,6 +21,7 @@ enum ControlMode{
     BUTTON, JOYSTICK
 };
 
+// Struct Direction is for the direction control in BUTTON mode
 struct Direction{
     bool f, b, l, r;
     Direction(bool _f = 0, bool _b = 0, bool _l = 0, bool _r = 0);
