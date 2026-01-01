@@ -6,7 +6,6 @@
 #include "MotionControl.h"
 #include "Vector.hpp"
 #include "StdMotor.h"
-// #include "Servo.h"
 
 #include <cstring>
 #include <cstdio>
@@ -14,7 +13,8 @@
 
 const int period = 50; // unit: us
 
-/* Old definition of the motors
+/*
+Old definition of the motors
 StdMotor FL(p21, p19, p18, period);
 StdMotor FR(p22, p17, p16, period);
 StdMotor BL(p23, p15, p14, period);
@@ -35,9 +35,13 @@ struct CmdInfo{
 };
 
 // Activated status for variable flag
-const uint32_t BT_READABLE = 0x3f;
+const uint32_t BT_READABLE = (1 << 0);
+const uint32_t RPI_READABLE = (1 << 1);
+
 BufferedSerial pc(USBTX, USBRX);
 BufferedSerial bt(p9, p10);
+BufferedSerial rpi(p28, p27);
+
 EventFlags flag;
 // The thread used to read the command from the bluetooth UART
 Thread inputThread;
@@ -45,20 +49,47 @@ Thread inputThread;
 // ensuring the safety of threads.
 Mail<CmdInfo, 16> cmdMail;
 
-void rxInterupt();
+void btInterrupt();
+void rpiInterrupt();
 void inputProcess();
 void cmdProcess(const char*, int len);
 
+
+// DigitalOut hb_led(LED1); 
+// Timer hb_timer;
+// unsigned long hb_count = 0;
+// void send_heartbeat() {
+//     if (hb_timer.read_ms() >= 1000) {
+//         hb_timer.reset();
+//         char buffer[32];
+//         int len = snprintf(buffer, sizeof(buffer), "HB:%lu\n", hb_count++);
+//         char msg[32];
+//         if(rpi.writable()) bt.write(buffer, len);
+//         else bt.write("No Con.\n", 6);
+//         if (rpi.writable()) {
+//             rpi.write(buffer, len);
+//             hb_led = !hb_led; // 翻转 LED，表示单片机还活着
+//         }
+//     }
+// }
+
 int main() {
+    // hb_timer.start();
     // Register an interrupt without blocking for the bluetooth UART
-    bt.sigio(callback(rxInterupt));
+    bt.sigio(callback(btInterrupt));
     bt.set_blocking(0);
     bt.set_baud(9600);
+
+    rpi.sigio(callback(rpiInterrupt));
+    rpi.set_blocking(1);
+    rpi.set_baud(115200);
+
     inputThread.start(callback(inputProcess));
 
     printf("Successfully started.\n");
     while (true) {
-        osEvent evt = cmdMail.get(0); 
+        // send_heartbeat();
+        osEvent evt = cmdMail.get(10); 
         // If there is messages in the mailbox, take out it and parse the texts.
         if(evt.status == osEventMail){
             CmdInfo* msg = (CmdInfo*)evt.value.p;
@@ -71,37 +102,53 @@ int main() {
 
 // The interrupt will be triggered,
 // when there is a message on the bluetooth UART.
-void rxInterupt() {
+void btInterrupt() {
     // Set the flag to be activated,
     // which will let inputProcess to read the message.
     flag.set(BT_READABLE);
 }
 
+void rpiInterrupt() {
+    flag.set(RPI_READABLE);
+}
+
 void inputProcess() {
-    char buffer[32];
-    int ptr = 0;
-    while(true) {
-        flag.wait_any(BT_READABLE);
-        while(bt.readable()) {
-            char ch;
-            bt.read(&ch, 1);
-            // Input processing ends with the string stored in the mailbox
-            // when reaching the end of the string
-            // or the buffer overflows.
-            // Otherwise, just put the character into the buffer.
-            if(ch == '\n' || ch == '\r' || ch == '\0' || ptr == 31) {
-                buffer[ptr] = '\0';
-                CmdInfo *msg = cmdMail.alloc();
-                if(msg){
-                    std::memcpy(msg->text, buffer, ptr + 1);
-                    msg->len = ptr;
-                    cmdMail.put(msg);
-                }
-                memset(buffer, 0, sizeof(buffer));
-                ptr = 0;
-                
+    const int BUF_SIZE = 32;
+
+    char btBuf[BUF_SIZE], rpiBuf[BUF_SIZE], ch;
+    int btPtr = 0, rpiPtr = 0;
+
+    auto charProcess = [&] (char buffer[], int &ptr) {
+        // Input processing ends with the string stored in the mailbox
+        // when reaching the end of the string
+        // or the buffer overflows.
+        // Otherwise, just put the character into the buffer.
+        if(ch == '\n' || ch == '\r' || ch == '\0' || ptr == 31) {
+            buffer[ptr] = '\0';
+            CmdInfo *msg = cmdMail.alloc();
+            if(msg){
+                std::memcpy(msg->text, buffer, ptr + 1);
+                msg->len = ptr;
+                cmdMail.put(msg);
             }
-            else buffer[ptr++] = ch;
+            memset(buffer, 0, BUF_SIZE);
+            ptr = 0;
+            
+        }
+        else buffer[ptr++] = ch;
+    };
+
+    while(true) {
+        flag.wait_any(BT_READABLE | RPI_READABLE);
+
+        while(bt.readable()) {
+            bt.read(&ch, 1);
+            charProcess(btBuf, btPtr);
+        }
+
+        while(rpi.readable()) {
+            rpi.read(&ch, 1);
+            charProcess(rpiBuf, rpiPtr);
         }
     }
 }
@@ -149,8 +196,8 @@ void cmdProcess(const char* text, int len){
     }
     // ':': Commands with a group of phrases
     if(text[0] == ':') {
-        char command[8];
-        sscanf(text + 2, "%s", command);
+        char command[16];
+        sscanf(text + 2, "%15s", command);
         if(strcmp(command, "SPD") == 0) {
             int speed;
             sscanf(text + 6, "%d", &speed);
@@ -163,16 +210,22 @@ void cmdProcess(const char* text, int len){
         }
         if(strcmp(command, "SM") == 0) {
             char mode[8];
-            sscanf(text + 5, "%s", mode);
+            sscanf(text + 5, "%7s", mode);
             if(strcmp(mode, "JS") == 0) carMotion.changeMode(JOYSTICK);
             if(strcmp(mode, "BT") == 0) carMotion.changeMode(BUTTON);
         }
-        if(strcmp(command, "SVO") == 0) {
-            char dir[4];
-            int level;
-            sscanf(text + 6, "%s%d", dir, &level);
-            // if(strcmp(dir, "UD")) servoUD.setAngle(level * 10);
-            // if(strcmp(dir, "LR")) servoLR.setAngle(level * 10);
+
+        bool isRpi = ((strcmp(command, "SVO") == 0) ||
+            (strcmp(command, "RGZ") == 0) ||
+            (strcmp(command, "TRK") == 0));
+        
+        if(isRpi) {
+            char msg[32];
+            sprintf(msg, "Sent \"%s\"\n", text);
+            bt.write(msg, strlen(msg));
+            memset(msg, 0, sizeof(msg));
+            sprintf(msg, "%s\n", text);
+            rpi.write(msg, strlen(msg));
         }
     }
 }
