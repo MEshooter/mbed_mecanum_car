@@ -22,11 +22,17 @@ class StdMotor{
     // speed > 0: forward
     // speed < 0: backward
     double speed;
+    bool forwardLock;
 public:
-    StdMotor(PinName, PinName, PinName, int);
+    StdMotor(PinName _m, PinName _l1, PinName _l2, int _p): 
+        pwmSignal(_m), logic1(_l1), logic2(_l2), period(_p), speed(0), forwardLock(false) {
+        pwmSignal.period_us(period);
+        forwardLock = 0;
+    }
     void start();
     void setSpeed(double);
     void setPeriod(int);
+    void setForwardLock(bool);
     int getPeriod();
     double getSpeed();
     int getWidth();

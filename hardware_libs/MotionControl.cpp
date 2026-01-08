@@ -56,8 +56,8 @@ void MotionControl::setRotation(const int& _w) {
     updateMotion(v);
 }
 
-void MotionControl::setBaseSpeed(const int& speed) {
-    baseSpeed = std::min(std::max(3, speed), 10) * 10;
+void MotionControl::setBaseSpeed(const double& speed) {
+    baseSpeed = std::min(std::max(5.0, speed), 10.0) * 10;
 }
 
 void MotionControl::updateMotion(const Vector<double>& _v) {

@@ -6,21 +6,16 @@
 #include "MotionControl.h"
 #include "Vector.hpp"
 #include "StdMotor.h"
+#include "Ultrasonic.hpp"
 
 #include <cstring>
 #include <cstdio>
 #include <cstdint>
+#include <deque>
+
+const int WIDTH = 320, HEIGHT = 240, A = 320 * 240;
 
 const int period = 50; // unit: us
-
-/*
-Old definition of the motors
-StdMotor FL(p21, p19, p18, period);
-StdMotor FR(p22, p17, p16, period);
-StdMotor BL(p23, p15, p14, period);
-StdMotor BR(p24, p13, p12, period);
-*/
-
 StdMotor BR(p21, p19, p18, period);
 StdMotor BL(p22, p17, p16, period);
 StdMotor FR(p23, p15, p14, period);
@@ -37,10 +32,14 @@ struct CmdInfo{
 // Activated status for variable flag
 const uint32_t BT_READABLE = (1 << 0);
 const uint32_t RPI_READABLE = (1 << 1);
+const int speedGrade = 7;
+
+bool sonicSwitch = 0;
 
 BufferedSerial pc(USBTX, USBRX);
 BufferedSerial bt(p9, p10);
 BufferedSerial rpi(p28, p27);
+Ultrasonic sonar(p29, p30); 
 
 EventFlags flag;
 // The thread used to read the command from the bluetooth UART
@@ -53,25 +52,6 @@ void btInterrupt();
 void rpiInterrupt();
 void inputProcess();
 void cmdProcess(const char*, int len);
-
-
-// DigitalOut hb_led(LED1); 
-// Timer hb_timer;
-// unsigned long hb_count = 0;
-// void send_heartbeat() {
-//     if (hb_timer.read_ms() >= 1000) {
-//         hb_timer.reset();
-//         char buffer[32];
-//         int len = snprintf(buffer, sizeof(buffer), "HB:%lu\n", hb_count++);
-//         char msg[32];
-//         if(rpi.writable()) bt.write(buffer, len);
-//         else bt.write("No Con.\n", 6);
-//         if (rpi.writable()) {
-//             rpi.write(buffer, len);
-//             hb_led = !hb_led; // 翻转 LED，表示单片机还活着
-//         }
-//     }
-// }
 
 int main() {
     // hb_timer.start();
@@ -89,7 +69,16 @@ int main() {
     printf("Successfully started.\n");
     while (true) {
         // send_heartbeat();
-        osEvent evt = cmdMail.get(10); 
+        float dist = sonar.getDistance();
+        float distLimit = 15 * speedGrade - 70;
+        bool isLocked = (sonicSwitch && dist < distLimit && dist > 2.0);
+        
+        FL.setForwardLock(isLocked);
+        FR.setForwardLock(isLocked);
+        BL.setForwardLock(isLocked);
+        BR.setForwardLock(isLocked);
+
+        osEvent evt = cmdMail.get(0);
         // If there is messages in the mailbox, take out it and parse the texts.
         if(evt.status == osEventMail){
             CmdInfo* msg = (CmdInfo*)evt.value.p;
@@ -174,7 +163,12 @@ void cmdProcess(const char* text, int len){
                 case 'R': tmp.r = 1; update(); break;
                 case 'B': carMotion.setRotation(-1); break;
                 case 'E': carMotion.setRotation(1); break;
-                case 'S': carMotion.stop(); break;
+                case 'S': 
+                    sonicSwitch=!sonicSwitch;
+                    char str[32];
+                    sprintf(str, "Ultrasonic Mode: %d\n", sonicSwitch);
+                    bt.write(str, strlen(str));
+                    break;
             }
         }
         if(islower(command)){
@@ -190,7 +184,7 @@ void cmdProcess(const char* text, int len){
                 case 'r': tmp.r = 0; update(); break;
                 case 'b': 
                 case 'e': carMotion.setRotation(0); break;
-                case 's': carMotion.stop(); break;
+                case 's': break;
             }
         }
     }
@@ -201,7 +195,7 @@ void cmdProcess(const char* text, int len){
         if(strcmp(command, "SPD") == 0) {
             int speed;
             sscanf(text + 6, "%d", &speed);
-            carMotion.setBaseSpeed(speed);
+            carMotion.setBaseSpeed(5 + speed * 0.5);
         }
         if(strcmp(command, "V") == 0) {
             double vx, vy;
@@ -214,10 +208,18 @@ void cmdProcess(const char* text, int len){
             if(strcmp(mode, "JS") == 0) carMotion.changeMode(JOYSTICK);
             if(strcmp(mode, "BT") == 0) carMotion.changeMode(BUTTON);
         }
+        if(strcmp(command, "OBJ") == 0) {
+            // double x, y, a, b;
+            // sscanf(text + 6, "%lf%lf%lf%lf", &x, &y, &a, &b);
+            // double x_c = WIDTH / 2.0, y_c = HEIGHT / 2.0, area =  4 * a * b;
+            // lastState.emplace_back(x, y, area);
+            // while(lastState.size() > 5) lastState.pop_front();
+        }
 
         bool isRpi = ((strcmp(command, "SVO") == 0) ||
-            (strcmp(command, "RGZ") == 0) ||
-            (strcmp(command, "TRK") == 0));
+            (strcmp(command, "CAM") == 0) ||
+            (strcmp(command, "TRK") == 0) || 
+            (strcmp(command, "AI") == 0));
         
         if(isRpi) {
             char msg[32];

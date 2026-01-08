@@ -42,7 +42,8 @@ Vector<double> dir2Vector(const Direction&);
 class MotionControl{
 private:
     StdMotor &FL, &FR, &BL, &BR;
-    int baseSpeed, w; // +1: cw -1: ccw
+    double baseSpeed;
+    int w; // +1: cw -1: ccw
     ControlMode mode;
     Direction dir;
     Vector<double> v;
@@ -53,7 +54,7 @@ public:
     void addDir(const Direction&);
     void delDir(const Direction&);
     void setRotation(const int&);
-    void setBaseSpeed(const int&);
+    void setBaseSpeed(const double&);
     void updateMotion(const Vector<double>& _v = Vector<double>());
     void stop();
 };
