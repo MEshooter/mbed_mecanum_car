@@ -29,6 +29,8 @@ The included `mbed-os` directory is the runtime dependency. The main application
 
 ## Physical Showcase
 
+You can view a video demonstration by visiting [this link](https://www.bilibili.com/video/BV1r3XsBiE4U).
+
 <p align="center">
     <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car front-left view" width="360"/>
     <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car back-left view" width="360"/>

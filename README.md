@@ -1,11 +1,11 @@
 [![中文](https://img.shields.io/badge/语言-中文-red)](./README.md)
 [![English](https://img.shields.io/badge/Language-English-blue)](./README.en.md)
 
-# 基于 Mbed 和树莓派的四驱视觉小车 - 运动控制部分
+# 基于 Mbed 和树莓派的四驱视觉小车
 
 ## 项目简介
 
-这是一个基于 mbed OS 的四驱全向小车控制项目，同时具备简单的视觉功能。运动控制由 NXP LPC1768 实现，其主要负责：
+这是一个基于 mbed OS 6 的四驱全向小车控制项目，同时具备简单的视觉功能。运动控制由 NXP LPC1768 实现，其主要负责：
 
 - 接收蓝牙串口命令
 - 接收和转发树莓派串口命令
@@ -32,6 +32,8 @@
 - 预留云台舵机、视觉识别、目标跟踪等扩展接口，实际由树莓派实现
 
 ## 实物展示
+
+通过访问 [此链接](https://www.bilibili.com/video/BV1r3XsBiE4U) 可以查看视频演示。
 
 <p align="center">
     <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car-front-left" width="360"/>
