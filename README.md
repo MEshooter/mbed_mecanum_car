@@ -27,6 +27,14 @@
 - 支持将部分高层命令透传给树莓派
 - 预留云台舵机、视觉识别、目标跟踪等扩展接口，实际由树莓派实现
 
+## 实物展示
+
+<p align="center">
+    <img src="docs/images/front-left.jpg" alt="Car-front-left" width="360">
+    <img src="docs/images/back-left.jpg" alt="Car-back-left" width="360">
+    <img src="docs/images/front.jpg" alt="Car-front" width="270">
+</p>
+
 ## 目录结构
 
 ```text
