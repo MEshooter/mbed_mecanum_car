@@ -30,11 +30,9 @@
 ## 实物展示
 
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/5f4c9f4c-d136-490d-8f35-65b1cb6441a4" alt="Car-front-left" width="360"/>
-    <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car-back-left" width="360"/>
-</p>
-<p align="center">
-    <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car-front" width="270"/>
+    <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car-front-left" width="360"/>
+    <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car-back-left" width="360"/>
+    <img src="https://github.com/user-attachments/assets/5f4c9f4c-d136-490d-8f35-65b1cb6441a4" alt="Car-front" width="270"/>
 </p>
 
 ## 目录结构
