@@ -29,6 +29,8 @@
 
 ## 实物展示
 
+![test](docs/images/front-left.jpg)
+
 <p align="center">
     <img src="docs/images/front-left.jpg" alt="Car-front-left" width="360">
     <img src="docs/images/back-left.jpg" alt="Car-back-left" width="360">
