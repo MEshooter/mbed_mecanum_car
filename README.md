@@ -5,20 +5,22 @@
 
 ## 项目简介
 
-这是一个基于 mbed OS 的四驱全向小车控制项目，同时具备简单的视觉功能。LPC1768 主控负责：
+这是一个基于 mbed OS 的四驱全向小车控制项目，同时具备简单的视觉功能。运动控制由 NXP LPC1768 实现，其主要负责：
 
 - 接收蓝牙串口命令
 - 接收和转发树莓派串口命令
 - 控制 4 个电机实现全向平移与原地旋转
 - 使用超声波模块进行前向避障保护
 
-视觉模块（包括相机、云台）通过树莓派实现，用户可以通过微信小程序操控。这两个模块可以通过如下链接访问：[蓝牙遥控器（微信小程序）](https://github.com/MEshooter/bluetooth_controller)，[视觉模块](https://github.com/MEshooter/berryeye)。
+关于 mbed OS 以及 LPC 1768 的相关信息可以通过访问 [mbed 官网](https://os.mbed.com/) 获取。视觉模块（包括相机、云台）基于树莓派和 Python 实现，用户可以通过微信小程序操控。这两个模块可以通过如下链接访问：[蓝牙遥控器（微信小程序）](https://github.com/MEshooter/bluetooth_controller)，[视觉模块](https://github.com/MEshooter/berryeye)。
 
 本项目中包含的 `mbed-os` 为运行环境依赖，业务逻辑主要位于：
 
 - `main.cpp`
 - `hardware_libs/`
 - `common_libs/`
+
+关于结构设计、仿真测试以及电路设计的内容，可以参考 `/docs/Group 15_Report_Engineering_Design_1.pdf`
 
 ## 功能概览
 
