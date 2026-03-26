@@ -27,6 +27,17 @@ The included `mbed-os` directory is the runtime dependency. The main application
 - Forwarding of high-level commands to the Raspberry Pi
 - Reserved interfaces for gimbal servo control, vision recognition, and target tracking, which are intended to be implemented on the Raspberry Pi side
 
+## Physical Showcase
+
+<p align="center">
+    <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car front-left view" width="360"/>
+    <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car back-left view" width="360"/>
+</p>
+
+<p align="center">
+    <img src="https://github.com/user-attachments/assets/5f4c9f4c-d136-490d-8f35-65b1cb6441a4" alt="Car front view" width="270"/>
+</p>
+
 ## Directory Structure
 
 ```text
