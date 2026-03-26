@@ -5,14 +5,16 @@
 
 ## 项目简介
 
-这是一个基于 mbed OS 的四驱全向小车控制项目。mbed 主控负责：
+这是一个基于 mbed OS 的四驱全向小车控制项目，同时具备简单的视觉功能。LPC1768 主控负责：
 
 - 接收蓝牙串口命令
 - 接收和转发树莓派串口命令
-- 控制 4 个电机实现前后左右平移与原地旋转
+- 控制 4 个电机实现全向平移与原地旋转
 - 使用超声波模块进行前向避障保护
 
-项目中包含的 `mbed-os` 为运行环境依赖，本项目的业务逻辑主要位于：
+视觉模块（包括相机、云台）通过树莓派实现，用户可以通过微信小程序操控。这两个模块可以通过如下链接访问：[蓝牙遥控器（微信小程序）](https://github.com/MEshooter/bluetooth_controller)，[视觉模块](https://github.com/MEshooter/berryeye)。
+
+本项目中包含的 `mbed-os` 为运行环境依赖，业务逻辑主要位于：
 
 - `main.cpp`
 - `hardware_libs/`
@@ -152,11 +154,7 @@ speedBR = V.y + V.x - W
 
 ### 单命令
 
-格式示例：
-
-```text
-# U
-```
+格式示例：`# U`
 
 说明如下：
 
@@ -176,11 +174,7 @@ speedBR = V.y + V.x - W
 
 ### 多参数命令
 
-格式示例：
-
-```text
-: V 0.71 0.71
-```
+格式示例：`: V 0.71 0.71`
 
 #### 1. 速度向量命令
 
@@ -318,10 +312,7 @@ speedBR = V.y + V.x - W
 
 以下命令会被 mbed 直接透传给树莓派：
 
-- `SVO`
-- `CAM`
-- `TRK`
-- `AI`
+- `SVO`，`CAM`，`TRK`，`AI`
 
 mbed 的行为是：
 
@@ -336,30 +327,15 @@ mbed 的行为是：
 
 ### 开关方式
 
-通过以下命令切换：
+通过以下命令切换：`# S`
 
-```text
-# S
-```
-
-蓝牙端会收到类似反馈：
-
-```text
-Ultrasonic Mode: 1
-```
+蓝牙端会收到类似反馈：`Ultrasonic Mode: 1`
 
 ### 生效方式
 
-主循环中会不断测量距离并计算：
+主循环中会不断测量距离并计算：'distLimit = 15 * speedGrade - 70`
 
-```text
-distLimit = 15 * speedGrade - 70
-```
-
-当前代码中：
-
-- `speedGrade = 7`
-- 因此 `distLimit = 35`
+当前代码中：`speedGrade = 7`，因此 `distLimit = 35`
 
 当满足以下条件时，会开启前进锁定：
 
@@ -414,11 +390,7 @@ distLimit = 15 * speedGrade - 70
 
 - 通过触发脉冲和回波测时获取距离
 
-距离计算：
-
-```text
-distance = echo_high_time_us * 0.017
-```
+距离计算：`distance = echo_high_time_us * 0.017`
 
 返回值单位通常可理解为厘米。
 
@@ -430,8 +402,7 @@ distance = echo_high_time_us * 0.017
 
 注意：
 
-- 注释中明确提到 LPC1768 的 PWM 资源限制
-- 若电机已经占用了某些 PWM 能力，舵机库可能需要谨慎使用
+- 由于 LPC1768 只支持一种 PWM 硬件频率（已被电机占用），实际项目中该库并未使用，舵机控制通过树莓派实现。
 
 ## 调试输出
 
