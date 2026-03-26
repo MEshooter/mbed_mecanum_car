@@ -1,59 +1,63 @@
 [![中文](https://img.shields.io/badge/语言-中文-red)](./README.md)
 [![English](https://img.shields.io/badge/Language-English-blue)](./README.en.md)
 
-# 4WD Visual Car Based on Mbed and Raspberry Pi - Motion Control Module
+# 4WD Visual Car Based on Mbed and Raspberry Pi
 
 ## Project Overview
 
-This is a 4WD omnidirectional car control project based on mbed OS. The mbed controller is responsible for:
+This is a 4WD omnidirectional car control project based on mbed OS 6, with basic vision capabilities. Motion control is implemented on the NXP LPC1768, which is mainly responsible for:
 
 - Receiving Bluetooth serial commands
 - Receiving and forwarding Raspberry Pi serial commands
-- Controlling 4 motors to achieve forward, backward, left, and right translation as well as in-place rotation
+- Controlling four motors for omnidirectional translation and in-place rotation
 - Using an ultrasonic module for forward obstacle-avoidance protection
 
-The included `mbed-os` directory is the runtime dependency. The main application logic of this project is located in:
+For more information about mbed OS and the LPC1768, see the [official mbed website](https://os.mbed.com/). The vision module, including the camera and gimbal, is implemented on the Raspberry Pi in Python, and can be operated through a WeChat mini-program. These two related modules are available here: [Bluetooth controller (WeChat mini-program)](https://github.com/MEshooter/bluetooth_controller), [vision module](https://github.com/MEshooter/berryeye).
+
+The included `mbed-os` directory is a runtime dependency. The main application logic is located in:
 
 - `main.cpp`
 - `hardware_libs/`
 - `common_libs/`
 
+For the structural design, simulation tests, and circuit design, refer to `/docs/Group 15_Report_Engineering_Design_1.pdf`.
+
 ## Features
 
-- Button-mode control for forward, backward, left, right, and rotation
-- Joystick-mode control through a 2D velocity vector
+- Button mode for forward, backward, left, right, and rotation control
+- Joystick mode using a 2D velocity vector to control motion direction
 - Adjustable base speed
-- Forward obstacle avoidance using ultrasonic sensing
-- Forwarding of high-level commands to the Raspberry Pi
-- Reserved interfaces for gimbal servo control, vision recognition, and target tracking, which are intended to be implemented on the Raspberry Pi side
+- Ultrasonic forward collision prevention
+- Forwarding selected high-level commands to the Raspberry Pi
+- Reserved extension interfaces for gimbal servos, vision recognition, and target tracking, with actual implementation on the Raspberry Pi side
 
 ## Physical Showcase
 
-You can view a video demonstration by visiting [this link](https://www.bilibili.com/video/BV1r3XsBiE4U).
+You can watch the demo video at [this link](https://www.bilibili.com/video/BV1r3XsBiE4U).
 
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car front-left view" width="360"/>
-    <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car back-left view" width="360"/>
+    <img src="https://github.com/user-attachments/assets/b6aaeaaa-1f19-4b45-aaf5-7ac2d83b1c72" alt="Car-front-left" width="360"/>
+    <img src="https://github.com/user-attachments/assets/b936af82-56b9-4dd4-a999-b21042754ff6" alt="Car-back-left" width="360"/>
 </p>
 
 <p align="center">
-    <img src="https://github.com/user-attachments/assets/5f4c9f4c-d136-490d-8f35-65b1cb6441a4" alt="Car front view" width="270"/>
+    <img src="https://github.com/user-attachments/assets/5f4c9f4c-d136-490d-8f35-65b1cb6441a4" alt="Car-front" width="270"/>
 </p>
 
 ## Directory Structure
 
 ```text
 .
-├─ main.cpp                 Program entry, serial I/O, command parsing, obstacle avoidance
+├─ main.cpp                 Main entry point, serial I/O, command parsing, obstacle avoidance
 ├─ mbed_app.json            mbed configuration
 ├─ common_libs
 │  └─ Vector.hpp            2D vector utility
 ├─ hardware_libs
-│  ├─ MotionControl.*       Motion control and wheel speed distribution
+│  ├─ MotionControl.*       Motion control and four-wheel speed distribution
 │  ├─ StdMotor.*            Standard PWM motor driver
-│  ├─ SimpleMotor.*         Simplified motor driver (not used in the current main program)
-│  ├─ Servo.*               Servo control library (not used in the current main program)
-│  └─ Ultrasonic.hpp        Ultrasonic distance measurement
+│  ├─ SimpleMotor.*         Simplified motor driver (unused in the current main program)
+│  ├─ Servo.*               Servo control library (unused in the current main program)
+│  └─ Ultrasonic.hpp        Ultrasonic ranging
 └─ mbed-os                  mbed OS dependency
 ```
 
@@ -71,9 +75,9 @@ The main program defines four motor objects:
 Each `StdMotor` includes:
 
 - 1 PWM output
-- 2 digital outputs for direction control
+- 2 direction logic outputs
 
-Here `50` means the PWM period is `50 us`.
+Here, `50` means the PWM period is `50 us`.
 
 ### Serial Ports
 
@@ -81,7 +85,7 @@ Here `50` means the PWM period is `50 us`.
 - Raspberry Pi serial: `rpi(p28, p27)`, baud rate `115200`
 - PC debug serial: `pc(USBTX, USBRX)`
 
-### Ultrasonic Module
+### Ultrasonic
 
 - `trig`: `p29`
 - `echo`: `p30`
@@ -93,28 +97,28 @@ Here `50` means the PWM period is `50 us`.
 The main thread continuously performs two tasks:
 
 - Reads the ultrasonic distance and decides whether forward motion should be locked
-- Retrieves commands from the mailbox and parses them
+- Retrieves serial commands from the mailbox and parses them
 
 ### 2. Input Thread
 
-The project starts an additional `inputThread` for serial input:
+The project starts an additional `inputThread` for serial reception:
 
 - The Bluetooth and Raspberry Pi serial ports trigger interrupts through `sigio`
-- The interrupt handler only sets event flags and does not process data directly
-- The input thread reads incoming serial characters after receiving the event
-- When a full line is received, it is packaged into `CmdInfo` and pushed into `Mail<CmdInfo, 16>`
+- The interrupt handlers only set event flags instead of processing data directly
+- The input thread reads serial characters after receiving an event
+- After a full command line is received, it is wrapped into `CmdInfo` and pushed into `Mail<CmdInfo, 16>`
 
-This design avoids doing heavy work in the interrupt handler and reduces coupling between serial reception and the main control flow.
+This design avoids complex logic inside interrupts and reduces coupling between serial reception and the main control flow.
 
 ### 3. Motion Control Layer
 
-`MotionControl` is responsible for decomposing the desired motion into wheel speeds:
+`MotionControl` is responsible for decomposing the desired motion into the speeds of four wheels:
 
-- In button mode, a unit direction vector is generated from the `f/b/l/r` state flags
-- In joystick mode, the input `(v_x, v_y)` is directly converted into a unit direction vector
-- The rotation component is represented by `w`, whose value is `-1 / 0 / 1`
+- In button mode, a unit direction vector is synthesized from the four directional states `f/b/l/r`
+- In joystick mode, the input `(v_x, v_y)` directly generates a unit direction vector
+- The rotation term is represented by `w`, whose value is `-1 / 0 / 1`
 
-The wheel speed distribution is:
+The four-wheel speed distribution formula is:
 
 ```text
 speedFL = V.y + V.x + W
@@ -130,59 +134,51 @@ Where:
 
 ## Local Debugging
 
-1. Clone all project files into the same directory
-2. Make sure the `mbed-os` dependency is in place
+1. Clone the complete project files into the same directory
+2. Ensure the `mbed-os` dependency is in place
 3. Import the project into Mbed Studio
-4. Compile and flash it to the target board
-5. Use a serial assistant or Bluetooth client to send commands for debugging
+4. Compile and flash it to the target development board
+5. Send commands through a serial tool or Bluetooth client for debugging
 
 ## Control Modes
 
 The project supports two control modes:
 
-- `BUTTON`: button mode, suitable for discrete directional commands
-- `JOYSTICK`: joystick mode, suitable for controlling direction with a 2D vector
+- `BUTTON`: button mode, suitable for controlling direction through discrete commands
+- `JOYSTICK`: joystick mode, suitable for controlling the velocity direction with a 2D vector
 
-These modes can be switched dynamically through commands.
+These modes can be switched dynamically via commands.
 
 ## Command Protocol
 
-The project supports two categories of commands:
+The project supports two types of commands:
 
-- Single commands beginning with `#`
-- Multi-parameter commands beginning with `:`
+- Single commands: start with `#`
+- Multi-parameter commands: start with `:`
 
 ### Single Commands
 
-Example:
+Format example: `# U`
 
-```text
-# U
-```
+The meanings are:
 
-Meaning:
-
-- `U / u`: start forward / stop forward
-- `D / d`: start backward / stop backward
-- `L / l`: start left shift / stop left shift
-- `R / r`: start right shift / stop right shift
+- `U / u`: start moving forward / stop moving forward
+- `D / d`: start moving backward / stop moving backward
+- `L / l`: start moving left / stop moving left
+- `R / r`: start moving right / stop moving right
 - `B / b`: start counterclockwise rotation / stop rotation
 - `E / e`: start clockwise rotation / stop rotation
 - `S / s`: enable / disable ultrasonic obstacle-avoidance mode
 
 Notes:
 
-- Uppercase means enabling an action
-- Lowercase means canceling an action
-- `B` and `E` do not accumulate rotation; repeated triggers follow the code logic to switch or clear the rotation state
+- Uppercase letters enable an action
+- Lowercase letters cancel an action
+- `B` and `E` do not stack rotation; repeated triggers switch or clear the state according to the implemented logic
 
 ### Multi-Parameter Commands
 
-Example:
-
-```text
-: V 0.71 0.71
-```
+Format example: `: V 0.71 0.71`
 
 #### 1. Velocity Vector Command
 
@@ -192,14 +188,14 @@ Example:
 
 Meaning:
 
-- Sends a velocity vector `v = (v_x, v_y)`
-- Parameters are floating-point values
+- Sends the velocity vector `v = (v_x, v_y)`
+- Parameters are floating-point numbers
 - Mainly used in joystick mode
 
 Notes:
 
-- The vector is normalized internally
-- So the input mainly represents direction, while the actual speed magnitude is determined by `baseSpeed`
+- The program normalizes the vector internally
+- So the input mainly represents direction, while the actual speed magnitude is determined by the base speed `baseSpeed`
 
 #### 2. Mode Switching Command
 
@@ -226,14 +222,14 @@ Meaning:
 
 Implementation details:
 
-- The main program first converts the input to `5 + speed * 0.5`
+- The main program first converts the input into `5 + speed * 0.5`
 - `MotionControl::setBaseSpeed()` then clamps it to `[5, 10]`
 - The final internal `baseSpeed` range is `50 ~ 100`
 
-That means:
+This means:
 
-- Very small `speed` values are limited to the minimum speed
-- Very large `speed` values are limited to the maximum speed
+- Very small `speed` values are clamped to the minimum speed
+- Very large `speed` values are clamped to the maximum speed
 
 #### 4. Servo Control Command
 
@@ -244,12 +240,12 @@ That means:
 
 Meaning:
 
-- Adjusts the gimbal servo angle in the up/down or left/right direction
-- `deg` is the target angle, and the recommended range is `-90` to `90`
+- Adjusts the servo angle of the gimbal in the up/down or left/right direction
+- `deg` is the angle value, with a recommended range of `-90` to `90`
 
 Notes:
 
-- The current mbed main program does not parse these parameters directly
+- The current mbed main program does not parse the command parameters directly
 - The command is forwarded to the Raspberry Pi as-is
 
 #### 5. Camera Control Command
@@ -279,7 +275,7 @@ Notes:
 
 Meaning:
 
-- Enable or disable human/object recognition
+- Enable / disable person or object recognition
 
 Notes:
 
@@ -294,7 +290,7 @@ Notes:
 
 Meaning:
 
-- Start or stop target tracking
+- Start / stop target tracking
 
 Notes:
 
@@ -308,30 +304,26 @@ Notes:
 
 Meaning:
 
-- Describes the target center position and bounding box size
-- `x_c` and `y_c` represent the center coordinates of the target
-- `a` and `b` represent the semi-axis lengths of the target box in the `x` and `y` directions
+- Describes the center position and bounding box size of the target object
+- `x_c` and `y_c` indicate the target center coordinates
+- `a` and `b` indicate the semi-axis lengths of the target box along the `x` and `y` directions
 
 Notes:
 
-- This branch appears to have been intended for implementing target tracking by feeding target position and motion information into a PID controller
-- In the current code, the actual handling logic is commented out and not used
+- This branch was originally intended to implement target tracking by passing the target position and movement direction in the field of view into a PID-based automatic tracking flow, but it is not actually used
 
 ## Raspberry Pi Forwarding Mechanism
 
 The following commands are directly forwarded by mbed to the Raspberry Pi:
 
-- `SVO`
-- `CAM`
-- `TRK`
-- `AI`
+- `SVO`, `CAM`, `TRK`, `AI`
 
-The mbed side performs:
+mbed behaves as follows:
 
-1. Sends a prompt back to Bluetooth, for example `Sent ": CAM SHOT"`
+1. Returns a prompt message to the Bluetooth side, for example `Sent ": CAM SHOT"`
 2. Sends the full command with a trailing newline to the Raspberry Pi serial port
 
-So in the full system, mbed acts not only as the chassis controller, but also as the forwarding node for upper-layer vision commands.
+Therefore, in the overall system, mbed acts both as the chassis controller and as the forwarding node for upper-layer vision commands.
 
 ## Ultrasonic Obstacle Avoidance Logic
 
@@ -339,32 +331,17 @@ The project provides a simple forward obstacle-avoidance function.
 
 ### Switching
 
-Use the following command:
+Toggle it with the following command: `# S`
 
-```text
-# S
-```
-
-The Bluetooth side will receive feedback similar to:
-
-```text
-Ultrasonic Mode: 1
-```
+The Bluetooth side will receive similar feedback: `Ultrasonic Mode: 1`
 
 ### How It Works
 
-The main loop continuously measures distance and calculates:
+The main loop continuously measures the distance and calculates: `distLimit = 15 * speedGrade - 70`
 
-```text
-distLimit = 15 * speedGrade - 70
-```
+In the current code: `speedGrade = 7`, so `distLimit = 35`
 
-In the current code:
-
-- `speedGrade = 7`
-- Therefore `distLimit = 35`
-
-When the following conditions are met, forward locking is enabled:
+When all of the following conditions are met, forward locking is enabled:
 
 - Ultrasonic mode is enabled
 - `distance < 35 cm`
@@ -373,9 +350,9 @@ When the following conditions are met, forward locking is enabled:
 After locking:
 
 - Positive motor speed is forced to `0`
-- Backward motion and other non-positive outputs can still run
+- Backward motion and other non-positive outputs can still execute
 
-## Key Class Descriptions
+## Key Classes
 
 ### `MotionControl`
 
@@ -385,7 +362,7 @@ Responsibilities:
 - Stores button states
 - Stores the base speed
 - Stores the rotation direction
-- Updates the wheel speeds according to the target motion
+- Updates the four-wheel speeds according to the target motion
 
 Key interfaces:
 
@@ -401,7 +378,7 @@ Key interfaces:
 
 Responsibilities:
 
-- Controls a DC motor according to a speed value
+- Controls a DC motor according to the speed value
 - Uses PWM to control speed
 - Uses two logic pins to control direction
 
@@ -409,21 +386,17 @@ Speed convention:
 
 - `speed > 0`: forward
 - `speed < 0`: reverse
-- Range limited to `[-100, 100]`
+- The valid range is limited to `[-100, 100]`
 
 ### `Ultrasonic`
 
 Responsibilities:
 
-- Obtains distance by measuring the echo pulse width
+- Obtains distance by measuring the trigger pulse and echo timing
 
-Distance formula:
+Distance formula: `distance = echo_high_time_us * 0.017`
 
-```text
-distance = echo_high_time_us * 0.017
-```
-
-The return value can generally be interpreted as centimeters.
+The returned value is generally interpreted in centimeters.
 
 ### `Servo`
 
@@ -433,16 +406,15 @@ Responsibilities:
 
 Notes:
 
-- The source comment explicitly mentions the PWM resource limitation on LPC1768
-- If the motors already occupy some PWM capability, the servo library should be used with caution
+- Since the LPC1768 supports only one PWM hardware frequency and it is already occupied by the motors, this library is not used in the actual project; servo control is implemented on the Raspberry Pi side
 
 ## Debug Output
 
-The program prints the following information through serial output for debugging:
+The program prints the following information over serial output for debugging:
 
 - Startup success message: `Successfully started.`
 - Received command content
 - Current velocity vector: `VELOCITY: ...`
-- Target speed of the four wheels: `SPEED: ...`
+- Target speeds of the four wheels: `SPEED: ...`
 
-These outputs are helpful for checking command parsing, speed distribution, and obstacle-avoidance behavior.
+These outputs are useful for troubleshooting command parsing, speed distribution, and obstacle-avoidance logic.
